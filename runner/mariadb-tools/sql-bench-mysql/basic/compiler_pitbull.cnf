@@ -1,0 +1,25 @@
+# Base compile options for running sql-bench on host pitbull.
+#
+# Hakan Kuecuekyilmaz, <hakan at askmonty dot org>, 2010-11-20.
+
+# Configure environment variables.
+# Note: You can set ccache in the host specific config file.
+# In this case conf/pitbull.cnf.
+#
+# This configuration is taken from BUILD/compile-pentium64-max --print.
+#
+$ENV{'CC'} = "gcc --pipe";
+$ENV{'CFLAGS'} = "-Wall -Wextra -Wunused -Wwrite-strings -mtune=native -m64 -O3 -fno-omit-frame-pointer";
+
+$ENV{'CXX'} = "g++";
+$ENV{'CXXFLAGS'} = "-Wall -Wextra -Wunused -Wwrite-strings -Wno-unused-parameter -Wnon-virtual-dtor -felide-constructors -fno-exceptions -fno-rtti -mtune=native -m64 -O3 -fno-omit-frame-pointer";
+$ENV{'CXXLDFLAGS'} = "";
+
+$config = {
+  # Configure invocation line.
+  # Do not use --prefix here.
+  configure_line => '--enable-assembler --with-extra-charsets=complex --enable-thread-safe-client --with-big-tables --with-readline --with-ssl --with-plugins=max --with-embedded-server --with-mysqld-ldflags=-all-static --with-client-ldflags=-all-static --enable-local-infile',
+};
+
+# This has to be the last line. See "perldoc -f require" for details.
+1;
