@@ -5,6 +5,7 @@
 package main
 
 import (
+	"strings"
 	"sync"
 	"time"
 
@@ -75,10 +76,14 @@ func (s *SQLStorage) Close() error {
 
 func (s *SQLStorage) Receive(rg ResultGroups) error {
 	results := rg.merge()
+
 	for _, res := range results {
 		err := insertResult(s.db, res)
 
 		if err != nil {
+			if strings.HasPrefix(err.Error(), "Error 1062: Duplicate entry") {
+				continue
+			}
 			return err
 		}
 	}
@@ -134,6 +139,11 @@ func resultQueryWhere(args *[]interface{}, filter database.Args) string {
 	if filter.Has("name") {
 		w = append(w, "BenchmarkResult.GroupName LIKE ?")
 		*args = append(*args, database.FullMatch(filter["name"]))
+	}
+
+	if filter.Has("since") {
+		w = append(w, "BenchmarkResult.Created >= ?")
+		*args = append(*args, filter["since"])
 	}
 
 	return database.PrepareWhere(w)

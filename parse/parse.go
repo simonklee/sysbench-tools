@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/simonz05/util/log"
 )
@@ -22,10 +23,10 @@ var (
 
 	flagFilterThreads = flag.Int("filter-threads", 0, "filter threads")
 	flagFilterName    = flag.String("filter-name", "", "filter name")
+	flagFilterSince   = flag.String("filter-since", "", "filter since time")
 )
 
 func main() {
-	// TODO: add option to read results from storage interface
 	flag.Parse()
 	log.Println("parse …")
 
@@ -38,7 +39,10 @@ func main() {
 			log.Fatal(err)
 		}
 
-		storage.Receive(res)
+		err = storage.Receive(res)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	//fmt.Println(res.merge())
@@ -90,7 +94,27 @@ func createFilter() map[string]interface{} {
 		filter["name"] = *flagFilterName
 	}
 
+	if *flagFilterSince != "" {
+		filter["since"] = parseTime(*flagFilterSince)
+	}
+
 	return filter
+}
+
+func parseTime(v string) time.Time {
+	ts, err := time.Parse("2006-01-02", v)
+
+	if err == nil {
+		return ts
+	}
+
+	d, err := time.ParseDuration(v)
+
+	if err != nil {
+		return time.Unix(0, 0).UTC()
+	}
+
+	return time.Now().Add(-d)
 }
 
 func parseOutputFlag(v string) []ChartWriter {
