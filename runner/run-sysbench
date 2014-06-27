@@ -20,6 +20,7 @@ OPTIONS:
    -w   ReadWrite mode (on/off)                         [on]
    -o   Timeout for each sysbench run           [60]
    -r   Directory to print results to           [./results]
+   -i   Id
    -t   List of thread counts to iterate [4 8 16 32 64 128 256]
 EOF
 }
@@ -39,7 +40,7 @@ sysbench=./sysbench/sysbench/sysbench
 size=1000000
 id=
 
-while getopts h:P:s:u:p:w:o:r:t: name
+while getopts h:P:s:u:p:w:o:r:t:i: name
 do
         case $name in
                 h) host="$OPTARG";;

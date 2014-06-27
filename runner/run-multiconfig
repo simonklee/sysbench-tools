@@ -42,7 +42,7 @@ socket=/tmp/mysql.sock
 user=root
 password=foobar
 readwrite=on
-timeout=60
+timeout=300
 resultsdir=./results
 threads="8,16,32,64,128"
 clean=off
@@ -86,13 +86,14 @@ for f in $( ls $dir ); do
                 printf "#### Shutting down MySQL \n"
                 sudo kill $(sudo cat $pid)
                 /etc/init.d/mysql stop
-      			while [ -e $pid ]; do
-    				printf "#### Waiting for MySQL to end. \n"
-	        		sleep 2
-        		done
-     		   	printf  "#### MySQL ended. \n"
+                while [ -e $pid ]; do
+                        printf "#### Waiting for MySQL to end. \n"
+                        sleep 2
+                done
+                printf  "#### MySQL ended. \n"
         fi
                 
+        rm -f /mnt/vol1/var/lib/mysql/ib_logfile{0,1}
         # Fire up MySQL with this config and then give it some time to warm up
         printf "#### Starting MySQL with $f \n"
         sudo mysqld_safe --defaults-file=$dir/$f &
@@ -121,11 +122,12 @@ if [ -e $pid ]; then
      	printf  "#### MySQL ended. \n"
         
         if [ "$clean" == "on" ]; then
+            rm -f /mnt/vol1/var/lib/mysql/ib_logfile{0,1}
     	    # Delete the bin log and innodb logs so they can be recreated
-	        sudo rm -f $(cat $dir/$f | grep innodb_log_group_home_dir | \
-        	        sed -e 's/innodb_log_group_home_dir//' -e 's/ //g' \
-    	            -e 's/=//')/ib_*
-	        sudo rm -f $(cat $dir/$f | grep log-bin | sed \
-        	        -e 's/log-bin//' -e 's/ //g' -e 's/=//')*
+	    #    sudo rm -f $(cat $dir/$f | grep innodb_log_group_home_dir | \
+            #            sed -e 's/innodb_log_group_home_dir//' -e 's/ //g' \
+    	    #        -e 's/=//')/ib_*
+	    #    sudo rm -f $(cat $dir/$f | grep log-bin | sed \
+            #	        -e 's/log-bin//' -e 's/ //g' -e 's/=//')*
         fi
 fi

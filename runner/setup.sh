@@ -1,7 +1,7 @@
 #!/bin/bash
 
 size=1000000
-timeout=120
+timeout=300
 sysbench=./sysbench/sysbench/sysbench
 
 echo "DROP DATABASE IF EXISTS sbtest" | mysql
