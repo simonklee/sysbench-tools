@@ -11,12 +11,12 @@ import (
 	"github.com/simonz05/database"
 )
 
-type ResultStorage interface {
-	Store(res ResultGroups) error
+type ResultReceiver interface {
+	Receive(res ResultGroups) error
 }
 
 type ResultFetcher interface {
-	Fetch() ([]*Result, error)
+	Fetch() ([]ResultGroups, error)
 }
 
 type SQLStorage struct {
@@ -63,7 +63,7 @@ func (s *SQLStorage) Close() error {
 	return s.db.Close()
 }
 
-func (s *SQLStorage) Store(rg ResultGroups) error {
+func (s *SQLStorage) Receive(rg ResultGroups) error {
 	results := rg.merge()
 	for _, res := range results {
 		err := insertResult(s.db, res)
@@ -74,6 +74,16 @@ func (s *SQLStorage) Store(rg ResultGroups) error {
 	}
 
 	return nil
+}
+
+func (s *SQLStorage) Fetch() (ResultGroups, error) {
+	results, err := selectResult(s.db, 0, 1000)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return NewResultGroups(results), nil
 }
 
 func insertResult(conn database.Conn, res *Result) error {

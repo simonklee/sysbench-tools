@@ -5,6 +5,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -17,13 +18,25 @@ type Result struct {
 	GroupName        string
 	GroupID          int
 	GroupThreads     int
-	Duration         time.Duration
+	Duration         Duration
 	Transactions     float64
 	Reads            float64
 	Writes           float64
-	ResponseTime     time.Duration
+	ResponseTime     Duration
 	ResponseTimePerc string
 	Created          time.Time
+}
+
+type Duration time.Duration
+
+func (d *Duration) Scan(src interface{}) error {
+	switch src.(type) {
+	case int64:
+		*d = Duration(src.(int64))
+	default:
+		return errors.New("Incompatible type for Duration")
+	}
+	return nil
 }
 
 var (
@@ -73,11 +86,11 @@ func parseResult(line string) (*Result, error) {
 	}
 
 	res := &Result{
-		Duration:         duration,
+		Duration:         Duration(duration),
 		Transactions:     tps,
 		Reads:            reads,
 		Writes:           writes,
-		ResponseTime:     responseTime,
+		ResponseTime:     Duration(responseTime),
 		ResponseTimePerc: match[6],
 	}
 	//fmt.Println(match[1], match[2], match[3], match[4], match[5], match[6])

@@ -12,6 +12,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/vdobler/chart"
 )
@@ -32,6 +33,53 @@ func (rg ResultGroups) merge() []*Result {
 	}
 
 	return results
+}
+
+func unmerge(results []*Result) []*ResultGroup {
+	out := make([]*ResultGroup, 0)
+
+	for _, res := range results {
+		// find result group for result
+		var cur *ResultGroup
+
+		for _, group := range out {
+			if group.id == res.GroupID && group.name == res.GroupName && group.threads == res.GroupThreads {
+				cur = group
+			}
+		}
+
+		if cur == nil {
+			cur = &ResultGroup{
+				id:      res.GroupID,
+				name:    res.GroupName,
+				threads: res.GroupThreads,
+				results: make([]*Result, 0, 1),
+			}
+			out = append(out, cur)
+		}
+
+		// insert result into result group, sorted by duration
+		idx := 0
+		s := cur.results
+
+		for i := len(s) - 1; i >= 0; i-- {
+			if res.Duration >= s[i].Duration {
+				idx = i + 1
+				break
+			}
+		}
+
+		s = append(s, nil)
+		copy(s[idx+1:], s[idx:])
+		s[idx] = res
+		cur.results = s
+	}
+
+	return out
+}
+
+func NewResultGroups(results []*Result) ResultGroups {
+	return unmerge(results)
 }
 
 func (rg ResultGroups) Chart(fields []string) []*Chart {
@@ -96,7 +144,7 @@ func (rg *ResultGroup) ChartData(field string) []chart.XYErrValue {
 		y := reflect.ValueOf(v).Elem().FieldByName(field)
 		p := &chart.Point{
 			Y: y.Float(),
-			X: v.Duration.Seconds(),
+			X: time.Duration(v.Duration).Seconds(),
 		}
 		out = append(out, p)
 	}

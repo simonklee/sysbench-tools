@@ -12,6 +12,7 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/vdobler/chart"
 	"github.com/vdobler/chart/imgg"
@@ -91,7 +92,7 @@ func resultsToChart(results []*Result, field string) []chart.XYErrValue {
 		y := reflect.ValueOf(v).Elem().FieldByName(field)
 		p := &chart.Point{
 			Y: y.Float(),
-			X: v.Duration.Seconds(),
+			X: time.Duration(v.Duration).Seconds(),
 		}
 		out = append(out, p)
 	}

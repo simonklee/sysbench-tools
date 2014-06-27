@@ -26,20 +26,25 @@ func main() {
 	res, _ := parseResults(*flagResultsDir)
 	//fmt.Println(res.merge())
 
-	if *flagSQLDSN != "" {
-		sql, err := NewSQLStorage(*flagSQLDSN)
+	//if *flagSQLDSN != "" {
+	sql, err := NewSQLStorage(*flagSQLDSN)
 
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		defer sql.Close()
-		err = sql.Store(res)
-
-		if err != nil {
-			log.Fatal(err)
-		}
+	if err != nil {
+		log.Fatal(err)
 	}
+
+	defer sql.Close()
+	err = sql.Receive(res)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	res, err = sql.Fetch()
+	if err != nil {
+		log.Fatal(err)
+	}
+	//}
 
 	fields, err := cleanFields(parseWords(*flagFields))
 
