@@ -14,39 +14,41 @@ import (
 )
 
 var (
-	flagResultsDir = flag.String("r", "results/", "results dir")
-	flagSQLDSN     = flag.String("sql", "", "SQL dsn")
+	flagResultsDir = flag.String("results", "", "results dir")
+	flagSQLDSN     = flag.String("sql", "testing:testing@tcp(localhost:3306)/testing?charset=utf8&parseTime=True", "SQL dsn")
 	flagOutput     = flag.String("output", "term", "comma separated list of output types. Options; png, term")
 	flagFields     = flag.String("fields", "Transactions", "comma separated list of fields. Options; Transactions, Reads, Writes")
+	flagFlush      = flag.Bool("flush", false, "flush existing benchmark results from storage backend")
+
+	flagFilterThreads = flag.Int("filter-threads", 0, "filter threads")
+	flagFilterName    = flag.String("filter-name", "", "filter name")
 )
 
 func main() {
 	// TODO: add option to read results from storage interface
 	flag.Parse()
 	log.Println("parse …")
-	res, _ := parseResults(*flagResultsDir)
-	//fmt.Println(res.merge())
 
-	if *flagSQLDSN != "" {
-		sql, err := NewSQLStorage(*flagSQLDSN)
+	storage := getStorage()
 
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		defer sql.Close()
-		err = sql.Receive(res)
+	if *flagResultsDir != "" {
+		res, err := parseResults(*flagResultsDir)
 
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		res, err = sql.Fetch()
-		if err != nil {
-			log.Fatal(err)
-		}
+		storage.Receive(res)
 	}
 
+	//fmt.Println(res.merge())
+	res, err := storage.Fetch(createFilter())
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	//defer sql.Close()
 	fields, err := cleanFields(parseWords(*flagFields))
 
 	if err != nil {
@@ -61,6 +63,34 @@ func main() {
 			w.Write(c)
 		}
 	}
+}
+
+func getStorage() Storage {
+	if *flagSQLDSN != "" {
+		sql, err := NewSQLStorage(*flagSQLDSN, *flagFlush)
+		if err != nil {
+			log.Fatal(err)
+		}
+		return sql
+	}
+
+	flag.Usage()
+	os.Exit(1)
+	return nil
+}
+
+func createFilter() map[string]interface{} {
+	filter := make(map[string]interface{})
+
+	if *flagFilterThreads != 0 {
+		filter["threads"] = *flagFilterThreads
+	}
+
+	if *flagFilterName != "" {
+		filter["name"] = *flagFilterName
+	}
+
+	return filter
 }
 
 func parseOutputFlag(v string) []ChartWriter {

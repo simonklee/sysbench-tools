@@ -71,13 +71,35 @@ func TimeChart(xlabel, ylabel string, ylabels []string, data [][]chart.XYErrValu
 	c.XRange.Label = xlabel
 	c.YRange.Label = ylabel
 	//c.XRange.Time = true
-	c.XRange.TicSetting.Mirror = 1
-	c.YRange.ShowZero = true
+	// fixed min 0
+
+	c.YRange.ShowLimits = true
+	c.XRange.TicSetting.Grid = chart.GridLines
+	c.YRange.TicSetting.Grid = chart.GridLines
+
+	min := 100000.0
 
 	for i := 0; i < len(data); i++ {
 		style := chart.AutoStyle(i, true)
 		c.AddDataGeneric(ylabels[i], data[i], chart.PlotStyleLinesPoints, style)
+
+		for j := 0; j < len(data[i]); j++ {
+			y := data[i][j].YVal()
+
+			if y < min {
+				min = y
+			}
+		}
 	}
+
+	min -= 100.0
+
+	if min < 0.0 {
+		min = 0.0
+	}
+
+	// adds more space to the bottom of the graph
+	c.YRange.MinMode.Fixed, c.YRange.MinMode.Value = true, min
 
 	return &Chart{
 		c:    c,

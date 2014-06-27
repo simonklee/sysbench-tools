@@ -16,24 +16,31 @@ type ResultReceiver interface {
 }
 
 type ResultFetcher interface {
-	Fetch() ([]ResultGroups, error)
+	Fetch(filters ...map[string]interface{}) (ResultGroups, error)
+}
+
+type Storage interface {
+	ResultReceiver
+	ResultFetcher
 }
 
 type SQLStorage struct {
 	db *database.DB
 }
 
-func NewSQLStorage(dsn string) (*SQLStorage, error) {
+func NewSQLStorage(dsn string, flush bool) (*SQLStorage, error) {
 	s := &SQLStorage{
 		db: database.NewDB(dsn),
 	}
-	return s, s.init()
+	return s, s.init(flush)
 }
 
-func (s *SQLStorage) init() error {
-	_, err := s.db.Exec("DROP TABLE IF EXISTS BenchmarkResult")
-	if err != nil {
-		return err
+func (s *SQLStorage) init(flush bool) error {
+	if flush {
+		_, err := s.db.Exec("DROP TABLE IF EXISTS BenchmarkResult")
+		if err != nil {
+			return err
+		}
 	}
 	stmt := `CREATE TABLE IF NOT EXISTS BenchmarkResult(
 	ID				 INT(11)         NOT NULL  AUTO_INCREMENT,
@@ -51,12 +58,15 @@ func (s *SQLStorage) init() error {
 	CONSTRAINT Pk_BenchmarkResult PRIMARY KEY ( ID ),
 	UNIQUE KEY idx_BenchmarkResultUnique (GroupID, GroupThreads, Duration)
 ) engine=InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;`
-	_, err = s.db.Exec(stmt)
+	_, err := s.db.Exec(stmt)
 	if err != nil {
 		return err
 	}
-	_, err = s.db.Exec("DELETE FROM BenchmarkResult")
-	return err
+	if flush {
+		_, err = s.db.Exec("DELETE FROM BenchmarkResult")
+		return err
+	}
+	return nil
 }
 
 func (s *SQLStorage) Close() error {
@@ -76,8 +86,8 @@ func (s *SQLStorage) Receive(rg ResultGroups) error {
 	return nil
 }
 
-func (s *SQLStorage) Fetch() (ResultGroups, error) {
-	results, err := selectResult(s.db, 0, 1000)
+func (s *SQLStorage) Fetch(filters ...map[string]interface{}) (ResultGroups, error) {
+	results, err := selectResult(s.db, 0, 1000, filters...)
 
 	if err != nil {
 		return nil, err
@@ -119,6 +129,11 @@ func resultQueryWhere(args *[]interface{}, filter database.Args) string {
 	if filter.Has("threads") {
 		w = append(w, "BenchmarkResult.GroupThreads = ?")
 		*args = append(*args, filter["threads"])
+	}
+
+	if filter.Has("name") {
+		w = append(w, "BenchmarkResult.GroupName LIKE ?")
+		*args = append(*args, database.FullMatch(filter["name"]))
 	}
 
 	return database.PrepareWhere(w)
