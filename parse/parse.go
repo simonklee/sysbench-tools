@@ -24,7 +24,7 @@ func main() {
 	flag.Parse()
 	log.Println("parse …")
 	res, _ := parseResults(*flagResultsDir)
-	fmt.Println(res.merge())
+	//fmt.Println(res.merge())
 
 	if *flagSQLDSN != "" {
 		sql, err := NewSQLStorage(*flagSQLDSN)
@@ -42,11 +42,13 @@ func main() {
 	}
 
 	fields, err := cleanFields(parseWords(*flagFields))
+
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	writers := parseOutputFlag(*flagOutput)
-	charts := genCharts(res, fields)
+	charts := res.Chart(fields)
 
 	for _, c := range charts {
 		for _, w := range writers {

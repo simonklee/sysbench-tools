@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
@@ -23,9 +22,17 @@ type ChartWriter interface {
 	Write(*Chart)
 }
 
+type Charter interface {
+	Chart([]string) []*Chart
+}
+
 type Chart struct {
 	c    chart.Chart
 	name string
+}
+
+func (c *Chart) filename() string {
+	return safeFilename(c.name)
 }
 
 type ImageWriter struct{}
@@ -34,7 +41,7 @@ type TermWriter struct{}
 func (im *ImageWriter) Write(c *Chart) {
 	os.MkdirAll("chart", os.ModePerm)
 
-	fp, err := os.Create(path.Join("chart", c.name+".png"))
+	fp, err := os.Create(path.Join("chart", c.filename()+".png"))
 
 	if err != nil {
 		panic(err)
@@ -58,35 +65,22 @@ func (tm *TermWriter) Write(c *Chart) {
 	os.Stdout.Write([]byte(tgr.String() + "\n\n\n"))
 }
 
-func genCharts(rg ResultGroups, fields []string) []*Chart {
-	charts := []*Chart{}
-
-	for _, field := range fields {
-		for _, group := range rg {
-			ylabel := fmt.Sprintf("%s", strings.Title(field))
-			xlabel := fmt.Sprintf("Time (ms)")
-			data := resultsToChart(group.results, field)
-
-			charts = append(charts, TimeChart(group.name, xlabel, ylabel, data))
-		}
-	}
-
-	return charts
-}
-
-func TimeChart(title, xlabel, ylabel string, data []chart.XYErrValue) *Chart {
-	c := &chart.ScatterChart{Title: title}
+func TimeChart(xlabel, ylabel string, ylabels []string, data [][]chart.XYErrValue) *Chart {
+	c := &chart.ScatterChart{Title: ylabel}
 	c.XRange.Label = xlabel
 	c.YRange.Label = ylabel
-	c.XRange.Time = true
+	//c.XRange.Time = true
 	c.XRange.TicSetting.Mirror = 1
+	c.YRange.ShowZero = true
 
-	style := chart.AutoStyle(4, true)
-	c.AddDataGeneric(ylabel, data, chart.PlotStyleLinesPoints, style)
+	for i := 0; i < len(data); i++ {
+		style := chart.AutoStyle(i, true)
+		c.AddDataGeneric(ylabels[i], data[i], chart.PlotStyleLinesPoints, style)
+	}
 
 	return &Chart{
 		c:    c,
-		name: safeFilename(title + " time chart"),
+		name: ylabel + "-" + xlabel + " time series",
 	}
 }
 

@@ -9,8 +9,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strconv"
 	"strings"
+
+	"github.com/vdobler/chart"
 )
 
 type ResultGroups []*ResultGroup
@@ -31,6 +34,27 @@ func (rg ResultGroups) merge() []*Result {
 	return results
 }
 
+func (rg ResultGroups) Chart(fields []string) []*Chart {
+	charts := []*Chart{}
+
+	for _, field := range fields {
+		data := make([][]chart.XYErrValue, 0, len(rg))
+		ylabels := make([]string, 0, len(rg))
+
+		xlabel := fmt.Sprintf("Time (sec)")
+		ylabel := fmt.Sprintf("%s per sec", strings.Title(field))
+
+		for _, group := range rg {
+			data = append(data, group.ChartData(field))
+			ylabels = append(ylabels, group.String())
+		}
+
+		charts = append(charts, TimeChart(xlabel, ylabel, ylabels, data))
+	}
+
+	return charts
+}
+
 type ResultGroup struct {
 	name     string
 	id       int
@@ -40,11 +64,44 @@ type ResultGroup struct {
 }
 
 func (rg *ResultGroup) String() string {
-	n := ""
+	name := ""
+
 	if rg.name != "" {
-		n = rg.name + "-"
+		name = rg.name
+	} else {
+		name = fmt.Sprintf("%d", rg.id)
 	}
-	return fmt.Sprintf("%s%d@%d, p: %s, results: %d\n", n, rg.id, rg.threads, rg.filepath, len(rg.results))
+
+	return fmt.Sprintf("%s: threads %d", name, rg.threads)
+}
+
+func (rg ResultGroup) Chart(fields []string) []*Chart {
+	charts := []*Chart{}
+
+	for _, field := range fields {
+		xlabel := fmt.Sprintf("Time (sec)")
+		ylabel := fmt.Sprintf("%s per sec", strings.Title(field))
+		data := [][]chart.XYErrValue{rg.ChartData(field)}
+		ylabels := []string{rg.String()}
+		charts = append(charts, TimeChart(xlabel, ylabel, ylabels, data))
+	}
+
+	return charts
+}
+
+func (rg *ResultGroup) ChartData(field string) []chart.XYErrValue {
+	out := make([]chart.XYErrValue, 0, len(rg.results))
+
+	for _, v := range rg.results {
+		y := reflect.ValueOf(v).Elem().FieldByName(field)
+		p := &chart.Point{
+			Y: y.Float(),
+			X: v.Duration.Seconds(),
+		}
+		out = append(out, p)
+	}
+
+	return out
 }
 
 func (rg *ResultGroup) parse() error {
