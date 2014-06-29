@@ -40,6 +40,7 @@ func main() {
 		}
 
 		err = storage.Receive(res)
+
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -52,7 +53,10 @@ func main() {
 		log.Fatal(err)
 	}
 
-	//defer sql.Close()
+	if len(res) == 0 {
+		log.Fatal("cannot create chart over 0 results. exit.")
+	}
+
 	fields, err := cleanFields(parseWords(*flagFields))
 
 	if err != nil {
