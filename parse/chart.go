@@ -20,7 +20,7 @@ import (
 )
 
 type ChartWriter interface {
-	Write(*Chart)
+	Write(*Chart) error
 }
 
 type Charter interface {
@@ -39,13 +39,17 @@ func (c *Chart) filename() string {
 type ImageWriter struct{}
 type TermWriter struct{}
 
-func (im *ImageWriter) Write(c *Chart) {
-	os.MkdirAll("chart", os.ModePerm)
+func (im *ImageWriter) Write(c *Chart) error {
+	err := os.MkdirAll("chart", os.ModePerm)
+
+	if err != nil {
+		return err
+	}
 
 	fp, err := os.Create(path.Join("chart", c.filename()+".png"))
 
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	defer fp.Close()
@@ -57,13 +61,14 @@ func (im *ImageWriter) Write(c *Chart) {
 	//row, col := d.Cnt/d.N, d.Cnt%d.N
 	igr := imgg.AddTo(img, 0, 0, 1024, 768, color.RGBA{0xff, 0xff, 0xff, 0xff}, nil, nil)
 	c.c.Plot(igr)
-	png.Encode(fp, img)
+	return png.Encode(fp, img)
 }
 
-func (tm *TermWriter) Write(c *Chart) {
+func (tm *TermWriter) Write(c *Chart) error {
 	tgr := txtg.New(100, 40)
 	c.c.Plot(tgr)
-	os.Stdout.Write([]byte(tgr.String() + "\n\n\n"))
+	_, err := os.Stdout.Write([]byte(tgr.String() + "\n\n\n"))
+	return err
 }
 
 func TimeChart(xlabel, ylabel string, ylabels []string, data [][]chart.XYErrValue) *Chart {

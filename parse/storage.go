@@ -5,11 +5,13 @@
 package main
 
 import (
+	"io"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/simonz05/database"
+	"github.com/simonz05/util/log"
 )
 
 type ResultReceiver interface {
@@ -23,6 +25,11 @@ type ResultFetcher interface {
 type Storage interface {
 	ResultReceiver
 	ResultFetcher
+}
+
+type ShutdownStorage interface {
+	Storage
+	io.Closer
 }
 
 type SQLStorage struct {
@@ -71,6 +78,7 @@ func (s *SQLStorage) init(flush bool) error {
 }
 
 func (s *SQLStorage) Close() error {
+	log.Println("Close SQL")
 	return s.db.Close()
 }
 

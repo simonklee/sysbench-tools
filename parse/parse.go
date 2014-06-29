@@ -7,11 +7,13 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/simonz05/util/log"
+	"github.com/simonz05/util/sig"
 )
 
 var (
@@ -26,23 +28,31 @@ var (
 	flagFilterSince   = flag.String("filter-since", "", "filter since time")
 )
 
-func main() {
+func execute() error {
 	flag.Parse()
 	log.Println("parse …")
 
 	storage := getStorage()
+	var closers multiCloser
+
+	if cl, ok := storage.(ShutdownStorage); ok {
+		closers = append(closers, cl)
+	}
+
+	sig.TrapCloser(closers)
+	defer closers.Close()
 
 	if *flagResultsDir != "" {
 		res, err := parseResults(*flagResultsDir)
 
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 
 		err = storage.Receive(res)
 
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 	}
 
@@ -50,17 +60,17 @@ func main() {
 	res, err := storage.Fetch(createFilter())
 
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	if len(res) == 0 {
-		log.Fatal("cannot create chart over 0 results. exit.")
+		return fmt.Errorf("cannot create chart over 0 results. exit.")
 	}
 
 	fields, err := cleanFields(parseWords(*flagFields))
 
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	writers := parseOutputFlag(*flagOutput)
@@ -68,8 +78,18 @@ func main() {
 
 	for _, c := range charts {
 		for _, w := range writers {
-			w.Write(c)
+			if err := w.Write(c); err != nil {
+				return err
+			}
 		}
+	}
+
+	return nil
+}
+
+func main() {
+	if err := execute(); err != nil {
+		log.Fatal(err)
 	}
 }
 
@@ -85,6 +105,17 @@ func getStorage() Storage {
 	flag.Usage()
 	os.Exit(1)
 	return nil
+}
+
+type multiCloser []io.Closer
+
+func (s multiCloser) Close() (err error) {
+	for _, cl := range s {
+		if err1 := cl.Close(); err == nil && err1 != nil {
+			err = err1
+		}
+	}
+	return
 }
 
 func createFilter() map[string]interface{} {
