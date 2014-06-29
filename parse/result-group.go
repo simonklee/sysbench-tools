@@ -251,19 +251,30 @@ func isSysbench(name string) bool {
 }
 
 func parseIdName(filename string) (int, string, error) {
-	parts := strings.Split(filename, "-")
+	fid := len("result-")
 
-	if len(parts) < 2 {
-		return 0, "", fmt.Errorf("expected at least 2 parts %v", parts)
+	if len(filename) <= fid {
+		return 0, "", fmt.Errorf("expected result-")
 	}
 
-	id, err := strconv.Atoi(parts[1])
+	tid := strings.Index(filename[fid:], "-")
+
+	if tid == -1 {
+		tid = len(filename)
+	} else {
+		tid += fid
+	}
+
+	id, err := strconv.Atoi(filename[fid:tid])
+
 	if err != nil {
 		return 0, "", err
 	}
+
 	name := ""
-	if len(parts) == 3 {
-		name = parts[2]
+
+	if tid+1 <= len(filename) {
+		name = filename[tid+1:]
 	}
 	return id, name, nil
 }

@@ -73,7 +73,7 @@ func parseResult(line string) (*Result, error) {
 		return nil, err
 	}
 
-	writes, err := strconv.ParseFloat(match[3], 64)
+	writes, err := strconv.ParseFloat(match[4], 64)
 
 	if err != nil {
 		return nil, err
