@@ -2,4 +2,6 @@
 
 host=staging.mysql5
 
-rsync -vur ./runner ./conf-test ./results ${host}:~/ || exit 1
+rsync -vur ./runner ./results ${host}:~/ || exit 1
+rsync -vur ${host}:~/results . || exit 1
+rsync -vur --delete ./conf-test ${host}:~/ || exit 1
