@@ -1,0 +1,5 @@
+#!/bin/bash
+
+host=staging.mysql5
+
+rsync -vur ./runner ./conf-test ./results ${host}:~/ || exit 1

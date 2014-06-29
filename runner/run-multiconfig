@@ -109,7 +109,7 @@ for f in $( ls $dir ); do
 done
 
 # Aggregate the results into a results.csv file
-./aggregate-results -r $resultsdir > $resultsdir/results.csv
+#./aggregate-results -r $resultsdir > $resultsdir/results.csv
 
 # Stop mysql if running
 if [ -e $pid ]; then

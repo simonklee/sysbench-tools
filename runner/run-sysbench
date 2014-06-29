@@ -63,11 +63,8 @@ threads=${threads//,/ }
 if [ "$readwrite" == "off" ]; then
         readonly=on
 fi
-if [ ! "$socket" == "/tmp/mysql.sock" ]; then
-	connparams="--mysql-socket=$socket --mysql-user=$user --mysql-password=$password"
-else 
-	connparams="--mysql-host=$host --mysql-port=$port --mysql-user=$user --mysql-password=$password"
-fi
+
+connparams="--mysql-host=$host --mysql-port=$port --mysql-user=$user --mysql-password=$password"
 
 # Determine run number for selecting an output directory
 mkdir -p $resultsdir
