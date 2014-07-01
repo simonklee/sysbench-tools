@@ -177,7 +177,7 @@ func cleanFields(fields []string) ([]string, error) {
 	for i, f := range fields {
 		f = strings.Title(f)
 		switch f {
-		case "Transactions", "Reads", "Writes":
+		case "Transactions", "Reads", "Writes", "ResponseTime":
 			fields[i] = f
 		default:
 			return nil, fmt.Errorf("Invalid field name %s", f)

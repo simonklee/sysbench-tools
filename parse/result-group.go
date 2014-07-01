@@ -141,9 +141,22 @@ func (rg *ResultGroup) ChartData(field string) []chart.XYErrValue {
 	out := make([]chart.XYErrValue, 0, len(rg.results))
 
 	for _, v := range rg.results {
-		y := reflect.ValueOf(v).Elem().FieldByName(field)
+		yi := reflect.ValueOf(v).Elem().FieldByName(field)
+		var y float64
+		switch yi.Kind() {
+		case reflect.Float64:
+			y = yi.Float()
+		case reflect.Int64:
+			println(yi.Int())
+			y = float64(yi.Int())
+			if field == "ResponseTime" {
+				y /= float64(time.Millisecond)
+			}
+		default:
+			panic(fmt.Sprintf("unexpected kind %v", yi.Kind()))
+		}
 		p := &chart.Point{
-			Y: y.Float(),
+			Y: y,
 			X: time.Duration(v.Duration).Seconds(),
 		}
 		out = append(out, p)
