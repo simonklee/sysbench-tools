@@ -154,6 +154,10 @@ func resultQueryWhere(args *[]interface{}, filter database.Args) string {
 		*args = append(*args, filter["since"])
 	}
 
+	if filter.Has("ids") {
+		database.PrepareIntIN(args, &w, filter["ids"], "BenchmarkResult", "GroupID")
+	}
+
 	return database.PrepareWhere(w)
 }
 

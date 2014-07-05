@@ -7,11 +7,12 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/simonz05/util/ioutil"
 	"github.com/simonz05/util/log"
 	"github.com/simonz05/util/sig"
 )
@@ -26,6 +27,7 @@ var (
 	flagFilterThreads = flag.Int("filter-threads", 0, "filter threads")
 	flagFilterName    = flag.String("filter-name", "", "filter name")
 	flagFilterSince   = flag.String("filter-since", "", "filter since time")
+	flagFilterID      = flag.String("filter-id", "", "filter id")
 )
 
 func execute() error {
@@ -33,7 +35,7 @@ func execute() error {
 	log.Println("parse …")
 
 	storage := getStorage()
-	var closers multiCloser
+	var closers ioutil.MultiCloser
 
 	if cl, ok := storage.(ShutdownStorage); ok {
 		closers = append(closers, cl)
@@ -107,17 +109,6 @@ func getStorage() Storage {
 	return nil
 }
 
-type multiCloser []io.Closer
-
-func (s multiCloser) Close() (err error) {
-	for _, cl := range s {
-		if err1 := cl.Close(); err == nil && err1 != nil {
-			err = err1
-		}
-	}
-	return
-}
-
 func createFilter() map[string]interface{} {
 	filter := make(map[string]interface{})
 
@@ -131,6 +122,10 @@ func createFilter() map[string]interface{} {
 
 	if *flagFilterSince != "" {
 		filter["since"] = parseTime(*flagFilterSince)
+	}
+
+	if *flagFilterID != "" {
+		filter["ids"] = parseInts(*flagFilterID)
 	}
 
 	return filter
@@ -184,6 +179,16 @@ func cleanFields(fields []string) ([]string, error) {
 		}
 	}
 	return fields, nil
+}
+
+func parseInts(raw string) []int {
+	words := parseWords(raw)
+	ints := make([]int, 0, len(words))
+	for _, w := range words {
+		i, _ := strconv.Atoi(w)
+		ints = append(ints, i)
+	}
+	return ints
 }
 
 func parseWords(raw string) []string {
