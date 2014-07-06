@@ -1,7 +1,12 @@
 #!/bin/bash
 
-host=staging.mysql5
+host=staging.mysql9
 
+if [ $# -eq 1 ]; then
+    host=$1
+fi
+
+echo $host
 rsync -vur ./runner ./results ${host}:~/ || exit 1
 rsync -vur ${host}:~/results . || exit 1
 rsync -vur --delete ./conf-test ${host}:~/ || exit 1
